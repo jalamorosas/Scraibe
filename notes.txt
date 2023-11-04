@@ -25,4 +25,8 @@ Review Questions:
 2. What happens when the data input pin is set to 0?
 3. How is line selection determined?
 4. How many select bits are there in the updated multiplexer?
-5. How many different inputs can be passed on with the updated multiplexer?
+5. How many different inputs can be passed on with the updated multiplexer?.
+
+- Positive attitude 
+- Encouragement 
+- Happiness
