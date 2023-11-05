@@ -84,7 +84,7 @@ def generate_notes(model, transcription):
         with open("notes.txt", 'a') as f:
             f.write("\n".join(notes))
         print(notes)
-        return notes
+    return notes
     
 def find_microphone():
     # List all available audio input devices
