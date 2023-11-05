@@ -9,6 +9,7 @@ from pydub import AudioSegment
 from langchain.chat_models import ChatOpenAI
 from langchain.prompts.chat import ChatPromptTemplate
 import argparse
+import sounddevice as sd
 
 
 def split_audio(input_filename, output_directory, chunk_length_ms):
@@ -84,14 +85,35 @@ def generate_notes(model, transcription):
             f.write("\n".join(notes))
         print(notes)
         return notes
+    
+def find_microphone():
+    # List all available audio input devices
+    devices = sd.query_devices()
+    mic_keyword = "Microphone"
+    exclude_keyword = "iPhone"
+
+    # Find the first appropriate microphone device
+    for device in devices:
+        if device['max_input_channels'] > 0:  # Device must be an input device
+            if mic_keyword in device['name'] and exclude_keyword not in device['name']:
+                mic_index = device['index']
+                print(f"Selected microphone: {device['name']} with index {mic_index}")
+                return mic_index
+
+    print("No suitable microphone found.")
+    return None
 
 def main():
     parser = argparse.ArgumentParser(description='A Python script that does something.')
     parser.add_argument('--model', choices=['davinci', 'gpt-3.5', 'gpt-4'], type=str, help='choose model', default='davinci')
     args = parser.parse_args()
     output_filename = "speech.wav"
+    if os.path.exists(output_filename):
+        os.remove(output_filename)
+
+    device_index = find_microphone()
     try:
-        record_audio.record_audio(filename=output_filename, device=1, samplerate=16000, channels=1, subtype='PCM_24')
+        record_audio.record_audio(filename=output_filename, device=device_index, samplerate=16000, channels=1, subtype='PCM_24')
     except Exception as e:
         print(f"An error occurred: {e}")
     audio_file= open(output_filename, "rb")
