@@ -2,37 +2,39 @@ import os
 import wave
 import time
 import threading
-import tkinter as tk
+import customtkinter as ctk
 import pyaudio
 import notes_generate
 
+ctk.set_appearance_mode("Dark")
+ctk.set_default_color_theme("blue")
 
 class AudioRecorder:
     def __init__(self):
-        self.root = tk.Tk()
+        self.root = ctk.CTk()
         self.root.title("Welcome to Scraibe")
         self.root.geometry("400x400")
         self.root.resizable(False, False)
 
          #welcome message
-        self.welcome_label = tk.Label(self.root, text="Welcome to Scraibe", font=("Arial", 24, "bold"))
+        self.welcome_label = ctk.CTkLabel(self.root, text="Welcome to Scraibe", font=("Arial", 24, "bold"))
         self.welcome_label.pack(pady=10)
 
          #instructions
-        self.instructions_label = tk.Label(self.root,
+        self.instructions_label = ctk.CTkLabel(self.root,
                                            text="Click 'Record' to start recording your lecture.\n"
                                                 "Click 'Stop' to end the recording and automatically\n"
                                                 "download a notes file of the recording.",
-                                           font=("Arial", 14), justify=tk.LEFT)
+                                           font=("Arial", 14), justify=ctk.LEFT)
         self.instructions_label.pack(pady=20) 
 
         #record button
-        self.button = tk.Button(self.root, text="Record", font=("Arial", 15, "bold"),
+        self.button = ctk.CTkButton(self.root, text="Record", font=("Arial", 15, "bold"),
                                 command=self.button_click)
         self.button.pack(pady=10)
 
         #timer
-        self.label = tk.Label(self.root, text="00:00:00", font=("Arial", 20))
+        self.label = ctk.CTkLabel(self.root, text="00:00:00", font=("Arial", 20))
         self.label.pack(pady=10)
 
         self.recording = False
@@ -45,11 +47,11 @@ class AudioRecorder:
     def button_click(self):
         if self.recording:
             self.recording = False
-            self.button.config(text="Record")
+            self.button.configure(text="Record")
             threading.Thread(target=self.save_audio_and_generate_notes).start()
         else:
             self.recording = True
-            self.button.config(text="Stop")
+            self.button.configure(text="Stop")
             threading.Thread(target=self.record).start()
 
     def record(self):
@@ -68,7 +70,7 @@ class AudioRecorder:
             seconds = passed % 60
             mins = passed // 60
             hours = mins // 60
-            self.label.config(text=f"{int(hours):02d}:{int(mins):02d}:{int(seconds):02d}")
+            self.label.configure(text=f"{int(hours):02d}:{int(mins):02d}:{int(seconds):02d}")
 
         self.stream.stop_stream()
         self.stream.close()
