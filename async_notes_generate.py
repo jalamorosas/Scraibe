@@ -35,19 +35,26 @@ async def transcribe_directory(directory_path):
     transcripts = await asyncio.gather(*tasks)
     return " ".join(transcripts)
 
-def generate_notes(model, transcription):
+async def async_run(chunk, chain):
+    resp = await chain.arun(text=chunk)
+    return resp.content
+
+async def async_invoke(chunk, chain):
+    resp = await chain.ainvoke({"text": chunk})
+    return resp.content
+
+async def generate_notes(model, transcription):
     if model == 'davinci':
         llm = OpenAI(model_name="text-davinci-003")
         prompt = PromptTemplate(
             input_variables=["transcription"],
-            template="Take notes on the following text {transcription}. \n Respond with just the notes",
+            template="Take notes on the following text {text}. \n Respond with just the notes",
         )
         chain = LLMChain(llm=llm, prompt=prompt)
         chunks = textwrap.wrap(transcription, 2000) 
         notes = list()
-        for chunk in chunks:
-            resp = chain.run(transcription=chunk)
-            notes.append(resp)
+        tasks = [asyncio.create_task(async_run(chunk, chain)) for chunk in chunks]
+        notes = await asyncio.gather(*tasks)
         with open("notes.txt", 'a') as f:
             f.write("\n".join(notes))
         print(notes)
@@ -64,14 +71,11 @@ def generate_notes(model, transcription):
         """  
 
         prompt = ChatPromptTemplate.from_template(text_prompt)
-
         chain = prompt | llm
-
         chunks = textwrap.wrap(transcription, 2000) 
         notes = list()
-        for chunk in chunks:
-            resp = chain.invoke({"text": chunk})
-            notes.append(resp.content)
+        tasks = [asyncio.create_task(async_invoke(chunk, chain)) for chunk in chunks]
+        notes = await asyncio.gather(*tasks)
         with open("notes.txt", 'a') as f:
             f.write("\n".join(notes))
         print(notes)

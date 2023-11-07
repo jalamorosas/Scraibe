@@ -28,7 +28,7 @@ async def transcribe_and_generate_notes():
         print("Audio File Processed!")
         transcription = await transcribe_directory(output_directory)
         print("Audio Transcribed!")
-        notes = generate_notes('gpt-3.5', transcription)  # 'davinci' or any other model you want to use
+        notes = await generate_notes('gpt-3.5', transcription)  # 'davinci' or any other model you want to use
         print("Notes generated!")
 
         return jsonify(notes)
