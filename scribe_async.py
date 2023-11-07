@@ -5,6 +5,7 @@ import threading
 import customtkinter as ctk
 import pyaudio
 import async_notes_generate
+import asyncio
 
 ctk.set_appearance_mode("Dark")
 ctk.set_default_color_theme("blue")
@@ -48,7 +49,7 @@ class AudioRecorder:
         if self.recording:
             self.recording = False
             self.button.configure(text="Record")
-            threading.Thread(target=self.save_audio_and_generate_notes).start()
+            threading.Thread(target=self.between_callback).start()
         else:
             self.recording = True
             self.button.configure(text="Stop")
@@ -76,13 +77,20 @@ class AudioRecorder:
         self.stream.close()
         self.audio.terminate()
 
-    def save_audio_and_generate_notes(self):
+    def between_callback(self):
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+        loop.run_until_complete(self.save_audio_and_generate_notes())
+        loop.close()
+
+    async def save_audio_and_generate_notes(self):
         filename = f"recorded_audio_{time.strftime('%Y%m%d%H%M%S')}.wav"
 
         recorded_file = wave.open(filename, "wb")
         recorded_file.setnchannels(1)
         recorded_file.setsampwidth(self.audio.get_sample_size(pyaudio.paInt16))
-        recorded_file.setframerate(44100)  # Sample rate
+        recorded_file.setframerate(16000)  # optimal sample rate for whisper api
         recorded_file.writeframes(b''.join(self.frames))
         recorded_file.close()
         print(f"Audio saved as {recorded_file}")
@@ -96,7 +104,7 @@ class AudioRecorder:
             os.makedirs(output_directory)
         async_notes_generate.split_audio(audio_file, output_directory, chunk_length_ms)
 
-        transcription = async_notes_generate.transcribe_directory(output_directory)
+        transcription = await async_notes_generate.transcribe_directory(output_directory)
         print(transcription)
 
         #delete audio file once we are done with it
@@ -109,6 +117,6 @@ class AudioRecorder:
         except Exception as e:
             print(f"Error deleting the file: {e}")
 
-        async_notes_generate.generate_notes('gpt-3.5', transcription)
+        await async_notes_generate.generate_notes('gpt-3.5', transcription)
 
 AudioRecorder()

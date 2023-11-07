@@ -33,6 +33,9 @@ async def transcribe_directory(directory_path):
     audio_files = [os.path.join(directory_path, filename) for filename in sorted(os.listdir(directory_path)) if filename.endswith(".wav")]
     tasks = [asyncio.create_task(transcribe_audio(audio_file)) for audio_file in audio_files]
     transcripts = await asyncio.gather(*tasks)
+    # cleanup audio_chunks directory
+    for filename in audio_files:
+        os.remove(filename)
     return " ".join(transcripts)
 
 async def async_run(chunk, chain):
