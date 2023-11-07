@@ -1,44 +1,40 @@
-import streamlit as st
-import notes_generate
-from record_audio import record_audio
+from flask import Flask, request, jsonify
+import os
+from async_notes_generate import generate_notes, split_audio, transcribe_directory
+import asyncio
 
-# You would import or define your `split_audio`, `transcribe_directory`, and `generate_notes` functions here.
+app = Flask(__name__)
 
-# Give your app a title
-st.title('Audio Transcription and Note Generation')
+@app.route('/transcribe_and_generate_notes', methods=['POST'])
+async def transcribe_and_generate_notes():
+    if 'audio_file' not in request.files:
+        return "No audio_file key in request.files", 400
 
-# Add an audio file uploader
-uploaded_file = st.file_uploader("Choose an audio file...", type=['wav', 'mp3'])
+    file = request.files['audio_file']
 
-# When the user uploads a file, process it
-if uploaded_file is not None:
-    # Save the uploaded audio file to the disk
-    audio_file_path = f"temp_audio/{uploaded_file.name}"
-    with open(audio_file_path, "wb") as f:
-        f.write(uploaded_file.getbuffer())
+    if file.filename == '':
+        return "No selected file", 400
 
-    # Split the audio file into chunks
-    # Assuming you have the `split_audio` function from your previous script
-    split_audio(audio_file_path, 'audio_chunks', 300000) # chunk_length_ms for 5 minutes
+    if file and allowed_file(file.filename):
+        output_directory = "audio_chunks"
+        chunk_length_ms = 5 * 60 * 1000  # 5 minutes in milliseconds
+        
+        # Save the file
+        audio_file_path = os.path.join(output_directory, file.filename)
+        file.save(audio_file_path)
 
-    # Transcribe the audio chunks
-    # Assuming you have the `transcribe_directory` function from your previous script
-    transcription = transcribe_directory('audio_chunks')
-    
-    # Show the transcription on the screen
-    st.subheader("Transcription")
-    st.write(transcription)
+        # Process the audio file
+        split_audio(audio_file_path, output_directory, chunk_length_ms)
+        print("Audio File Processed!")
+        transcription = await transcribe_directory(output_directory)
+        print("Audio Transcribed!")
+        notes = generate_notes('gpt-3.5', transcription)  # 'davinci' or any other model you want to use
+        print("Notes generated!")
 
-    # Generate notes
-    # Assuming you have the `generate_notes` function from your previous script
-    notes = generate_notes('gpt-3.5', transcription) # or 'davinci', or 'gpt-4', based on your script
-    
-    # Show the notes on the screen
-    st.subheader("Generated Notes")
-    st.write(notes)
+        return jsonify(notes)
 
-    # Clean up (remove the audio file and chunks)
-    # This would be similar to the cleanup code in your previous script
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'wav', 'mp3', 'm4a'}
 
-# Run your Streamlit app from the command line with:
-# streamlit run yourscript.py
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=8000)
