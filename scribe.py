@@ -5,6 +5,7 @@ import threading
 import customtkinter as ctk
 import pyaudio
 import notes_generate
+import record_audio
 
 ctk.set_appearance_mode("Dark")
 ctk.set_default_color_theme("blue")
@@ -16,11 +17,11 @@ class AudioRecorder:
         self.root.geometry("400x400")
         self.root.resizable(False, False)
 
-         #welcome message
+        #welcome message
         self.welcome_label = ctk.CTkLabel(self.root, text="Welcome to Scribe", font=("Arial", 24, "bold"))
         self.welcome_label.pack(pady=10)
 
-         #instructions
+        #instructions
         self.instructions_label = ctk.CTkLabel(self.root,
                                            text="Click 'Record' to start recording your lecture.\n"
                                                 "Click 'Stop' to end the recording and automatically\n"
@@ -38,60 +39,55 @@ class AudioRecorder:
         self.label.pack(pady=10)
 
         self.recording = False
-        self.frames = []
-        self.audio = None
-        self.stream = None
+        self.filename = None
         self.root.mainloop()
 
-
+    #button click event
     def button_click(self):
         if self.recording:
             self.recording = False
             self.button.configure(text="Record")
-            threading.Thread(target=self.save_audio_and_generate_notes).start()
+            record_audio.stop_recording()
+            self.save_audio_and_generate_notes()
         else:
             self.recording = True
             self.button.configure(text="Stop")
+            self.start_time = time.time()
             threading.Thread(target=self.record).start()
+            self.update_timer(self.start_time)
 
-    def record(self):
-        self.audio = pyaudio.PyAudio()
-        self.stream = self.audio.open(format = pyaudio.paInt16, channels = 1, rate = 44100,
-                            input = True, frames_per_buffer = 1024)
-        
-        self.frames = []
-        start_time = time.time()
 
-        while self.recording:
-            data = self.stream.read(1024)
-            self.frames.append(data)
-
+    #update timer
+    def update_timer(self, start_time):
+        if self.recording:
             passed = time.time() - start_time
             seconds = passed % 60
             mins = passed // 60
             hours = mins // 60
             self.label.configure(text=f"{int(hours):02d}:{int(mins):02d}:{int(seconds):02d}")
+            self.root.after(1000, self.update_timer, start_time)
 
-        self.stream.stop_stream()
-        self.stream.close()
-        self.audio.terminate()
 
-    def save_audio_and_generate_notes(self):
-        filename = f"recorded_audio_{time.strftime('%Y%m%d%H%M%S')}.wav"
+    #record audio
+    def record(self):
+        self.filename = "speech.wav"
+        if os.path.exists(self.filename):
+            os.remove(self.filename)
 
-        recorded_file = wave.open(filename, "wb")
-        recorded_file.setnchannels(1)
-        recorded_file.setsampwidth(self.audio.get_sample_size(pyaudio.paInt16))
-        recorded_file.setframerate(44100)  # Sample rate
-        recorded_file.writeframes(b''.join(self.frames))
-        recorded_file.close()
-        print(f"Audio saved as {recorded_file}")
+        device_index = notes_generate.find_microphone()
+    
+        record_audio.record_audio(filename=self.filename, device=device_index, samplerate=16000, channels=1, subtype='PCM_24')
+        start_time = time.time()
+        self.update_timer(start_time)
+
         
-        audio_file= open(filename, "rb")
+    #save audio and generate notes
+    def save_audio_and_generate_notes(self):
+        audio_file= open(self.filename, "rb")
         output_directory = "audio_chunks"
         chunk_length_ms = 5 * 60 * 1000  # 10 minutes in milliseconds
         
-        # Create the output directory if it doesn't exist
+        #create the output directory if it doesn't exist
         if not os.path.exists(output_directory):
             os.makedirs(output_directory)
         notes_generate.split_audio(audio_file, output_directory, chunk_length_ms)
@@ -103,9 +99,9 @@ class AudioRecorder:
         audio_file.close()
         try:
             audio_file.close()
-            # Attempt to delete the file
-            if os.path.exists(filename):
-                os.remove(filename)
+            #attempt to delete the file
+            if os.path.exists(self.filename):
+                os.remove(self.filename)
         except Exception as e:
             print(f"Error deleting the file: {e}")
 
