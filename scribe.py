@@ -62,7 +62,7 @@ class AudioRecorder:
         if self.recording:
             passed = time.time() - start_time
             seconds = passed % 60
-            mins = passed // 60
+            mins = (passed // 60) % 60
             hours = mins // 60
             self.label.configure(text=f"{int(hours):02d}:{int(mins):02d}:{int(seconds):02d}")
             self.root.after(1000, self.update_timer, start_time)

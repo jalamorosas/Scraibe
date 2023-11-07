@@ -6,12 +6,12 @@ import customtkinter as ctk
 import pyaudio
 import async_notes_generate
 import asyncio
-import record_audio
+import record_audio_class
 
 ctk.set_appearance_mode("Dark")
 ctk.set_default_color_theme("blue")
 
-class AudioRecorder:
+class ScribeGUI:
     def __init__(self):
         self.root = ctk.CTk()
         self.root.title("Welcome to Scribe")
@@ -41,20 +41,43 @@ class AudioRecorder:
 
         self.recording = False
         self.filename = None
+        self.processing_thread = None
+        # Add a label for status messages
+        self.status_label = ctk.CTkLabel(self.root, text="", font=("Arial", 12))
+        self.status_label.pack(pady=5)
+
+        self.filename = 'my_recording.wav'
+        self.recorder = record_audio_class.AudioRecorder(filename=self.filename, channels=1, subtype='PCM_24')
+        self.recording_thread = None
+
         self.root.mainloop()
 
 
+    def set_status(self, message):
+        """Updates the status label with a given message."""
+        self.status_label.configure(text=message)
+        self.status_label.update()
+
     def button_click(self):
         if self.recording:
+            self.set_status("Stopping recording, please wait...")
             self.recording = False
             self.button.configure(text="Record")
-            record_audio.stop_recording()
-            threading.Thread(target=self.between_callback).start()
+            self.recorder.stop()  # Stop the recording
+            print("button: waiting for recording thread to finish")
+            self.recording_thread.join()  # Wait for the recording thread to finish
+            print("button: recording thread finished")
+            self.recording_thread = None  # Clear the thread
+            self.set_status("Processing... Please wait.")
+            threading.Thread(target=self.between_callback).start() 
+
         else:
+            self.set_status("Recording...")
             self.recording = True
             self.button.configure(text="Stop")
             self.start_time = time.time()
-            threading.Thread(target=self.record).start()
+            self.recording_thread = threading.Thread(target=self.recorder.record)
+            self.recording_thread.start()
             self.update_timer(self.start_time)
 
     #update timer
@@ -62,30 +85,32 @@ class AudioRecorder:
         if self.recording:
             passed = time.time() - start_time
             seconds = passed % 60
-            mins = passed // 60
-            hours = mins // 60
+            mins = (passed // 60) % 60
+            hours = (passed // 60) // 60
             self.label.configure(text=f"{int(hours):02d}:{int(mins):02d}:{int(seconds):02d}")
             self.root.after(1000, self.update_timer, start_time)
 
+    # #record audio
+    # def record(self):
+    #     self.filename = "speech.wav"
+    #     if os.path.exists(self.filename):
+    #         os.remove(self.filename)
 
-    #record audio
-    def record(self):
-        self.filename = "speech.wav"
-        if os.path.exists(self.filename):
-            os.remove(self.filename)
-
-        device_index = async_notes_generate.find_microphone()
+    #     device_index = async_notes_generate.find_microphone()
     
-        record_audio.record_audio(filename=self.filename, device=device_index, samplerate=16000, channels=1, subtype='PCM_24')
-        start_time = time.time()
-        self.update_timer(start_time)
+    #     record_audio.record_audio(filename=self.filename, device=device_index, samplerate=16000, channels=1, subtype='PCM_24')
+    #     start_time = time.time()
+    #     self.update_timer(start_time)
 
     def between_callback(self):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
 
         loop.run_until_complete(self.save_audio_and_generate_notes())
+        print("Async loop completed")
+        self.set_status("Processing Finished")
         loop.close()
+        return
 
     async def save_audio_and_generate_notes(self): 
         audio_file= open(self.filename, "rb")
@@ -95,7 +120,9 @@ class AudioRecorder:
         # Create the output directory if it doesn't exist
         if not os.path.exists(output_directory):
             os.makedirs(output_directory)
-        async_notes_generate.split_audio(audio_file, output_directory, chunk_length_ms)
+
+        loop = asyncio.get_running_loop()
+        await loop.run_in_executor(None, async_notes_generate.split_audio, self.filename, output_directory, chunk_length_ms)
 
         transcription = await async_notes_generate.transcribe_directory(output_directory)
         print(transcription)
@@ -110,6 +137,9 @@ class AudioRecorder:
         except Exception as e:
             print(f"Error deleting the file: {e}")
 
-        await async_notes_generate.generate_notes('gpt-3.5', transcription)
-
-AudioRecorder()
+        notes = await async_notes_generate.generate_notes('gpt-3.5', transcription)
+        print("save audio and notes generation completed")
+        return
+        
+if __name__ == "__main__":
+    ScribeGUI()
