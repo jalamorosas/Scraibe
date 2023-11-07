@@ -4,7 +4,7 @@ import time
 import threading
 import customtkinter as ctk
 import pyaudio
-import notes_generate
+import async_notes_generate
 
 ctk.set_appearance_mode("Dark")
 ctk.set_default_color_theme("blue")
@@ -12,12 +12,12 @@ ctk.set_default_color_theme("blue")
 class AudioRecorder:
     def __init__(self):
         self.root = ctk.CTk()
-        self.root.title("Welcome to Scraibe")
+        self.root.title("Welcome to Scribe")
         self.root.geometry("400x400")
         self.root.resizable(False, False)
 
          #welcome message
-        self.welcome_label = ctk.CTkLabel(self.root, text="Welcome to Scraibe", font=("Arial", 24, "bold"))
+        self.welcome_label = ctk.CTkLabel(self.root, text="Welcome to Scribe", font=("Arial", 24, "bold"))
         self.welcome_label.pack(pady=10)
 
          #instructions
@@ -94,9 +94,9 @@ class AudioRecorder:
         # Create the output directory if it doesn't exist
         if not os.path.exists(output_directory):
             os.makedirs(output_directory)
-        notes_generate.split_audio(audio_file, output_directory, chunk_length_ms)
+        async_notes_generate.split_audio(audio_file, output_directory, chunk_length_ms)
 
-        transcription = notes_generate.transcribe_directory(output_directory)
+        transcription = async_notes_generate.transcribe_directory(output_directory)
         print(transcription)
 
         #delete audio file once we are done with it
@@ -109,6 +109,6 @@ class AudioRecorder:
         except Exception as e:
             print(f"Error deleting the file: {e}")
 
-        notes_generate.generate_notes('gpt-3.5', transcription)
+        async_notes_generate.generate_notes('gpt-3.5', transcription)
 
 AudioRecorder()
