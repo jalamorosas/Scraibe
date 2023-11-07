@@ -90,18 +90,6 @@ class ScribeGUI:
             self.label.configure(text=f"{int(hours):02d}:{int(mins):02d}:{int(seconds):02d}")
             self.root.after(1000, self.update_timer, start_time)
 
-    # #record audio
-    # def record(self):
-    #     self.filename = "speech.wav"
-    #     if os.path.exists(self.filename):
-    #         os.remove(self.filename)
-
-    #     device_index = async_notes_generate.find_microphone()
-    
-    #     record_audio.record_audio(filename=self.filename, device=device_index, samplerate=16000, channels=1, subtype='PCM_24')
-    #     start_time = time.time()
-    #     self.update_timer(start_time)
-
     def between_callback(self):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
