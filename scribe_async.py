@@ -6,6 +6,7 @@ import customtkinter as ctk
 import pyaudio
 import async_notes_generate
 import asyncio
+import record_audio
 
 ctk.set_appearance_mode("Dark")
 ctk.set_default_color_theme("blue")
@@ -39,9 +40,7 @@ class AudioRecorder:
         self.label.pack(pady=10)
 
         self.recording = False
-        self.frames = []
-        self.audio = None
-        self.stream = None
+        self.filename = None
         self.root.mainloop()
 
 
@@ -49,33 +48,37 @@ class AudioRecorder:
         if self.recording:
             self.recording = False
             self.button.configure(text="Record")
+            record_audio.stop_recording()
             threading.Thread(target=self.between_callback).start()
         else:
             self.recording = True
             self.button.configure(text="Stop")
+            self.start_time = time.time()
             threading.Thread(target=self.record).start()
+            self.update_timer(self.start_time)
 
-    def record(self):
-        self.audio = pyaudio.PyAudio()
-        self.stream = self.audio.open(format = pyaudio.paInt16, channels = 1, rate = 44100,
-                            input = True, frames_per_buffer = 1024)
-        
-        self.frames = []
-        start_time = time.time()
-
-        while self.recording:
-            data = self.stream.read(1024)
-            self.frames.append(data)
-
+    #update timer
+    def update_timer(self, start_time):
+        if self.recording:
             passed = time.time() - start_time
             seconds = passed % 60
             mins = passed // 60
             hours = mins // 60
             self.label.configure(text=f"{int(hours):02d}:{int(mins):02d}:{int(seconds):02d}")
+            self.root.after(1000, self.update_timer, start_time)
 
-        self.stream.stop_stream()
-        self.stream.close()
-        self.audio.terminate()
+
+    #record audio
+    def record(self):
+        self.filename = "speech.wav"
+        if os.path.exists(self.filename):
+            os.remove(self.filename)
+
+        device_index = async_notes_generate.find_microphone()
+    
+        record_audio.record_audio(filename=self.filename, device=device_index, samplerate=16000, channels=1, subtype='PCM_24')
+        start_time = time.time()
+        self.update_timer(start_time)
 
     def between_callback(self):
         loop = asyncio.new_event_loop()
@@ -84,18 +87,8 @@ class AudioRecorder:
         loop.run_until_complete(self.save_audio_and_generate_notes())
         loop.close()
 
-    async def save_audio_and_generate_notes(self):
-        filename = f"recorded_audio_{time.strftime('%Y%m%d%H%M%S')}.wav"
-
-        recorded_file = wave.open(filename, "wb")
-        recorded_file.setnchannels(1)
-        recorded_file.setsampwidth(self.audio.get_sample_size(pyaudio.paInt16))
-        recorded_file.setframerate(16000)  # optimal sample rate for whisper api
-        recorded_file.writeframes(b''.join(self.frames))
-        recorded_file.close()
-        print(f"Audio saved as {recorded_file}")
-        
-        audio_file= open(filename, "rb")
+    async def save_audio_and_generate_notes(self): 
+        audio_file= open(self.filename, "rb")
         output_directory = "audio_chunks"
         chunk_length_ms = 5 * 60 * 1000  # 10 minutes in milliseconds
         
@@ -112,8 +105,8 @@ class AudioRecorder:
         try:
             audio_file.close()
             # Attempt to delete the file
-            if os.path.exists(filename):
-                os.remove(filename)
+            if os.path.exists(self.filename):
+                os.remove(self.filename)
         except Exception as e:
             print(f"Error deleting the file: {e}")
 
