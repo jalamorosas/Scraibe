@@ -21,8 +21,8 @@ def split_audio(input_filename, output_directory, chunk_length_ms):
     for i in range(0, total_length_ms, chunk_length_ms):
         chunk = audio[i:i + chunk_length_ms]
         chunk = chunk.set_frame_rate(16000) # max frame rate that whisper supports
-        chunk_name = f"{output_directory}/chunk{i//1000}_{(i + chunk_length_ms)//1000}.wav"
-        chunk.export(chunk_name, format="wav")
+        chunk_name = f"{output_directory}/chunk{i//1000}_{(i + chunk_length_ms)//1000}.mp3"
+        chunk.export(chunk_name, format="mp3")
 
 async def transcribe_audio(file_path):
     loop = asyncio.get_event_loop()
@@ -31,7 +31,7 @@ async def transcribe_audio(file_path):
     return transcript.text
 
 async def transcribe_directory(directory_path):
-    audio_files = [os.path.join(directory_path, filename) for filename in sorted(os.listdir(directory_path)) if filename.endswith(".wav")]
+    audio_files = [os.path.join(directory_path, filename) for filename in sorted(os.listdir(directory_path)) if filename.endswith(".mp3")]
     tasks = [asyncio.create_task(transcribe_audio(audio_file)) for audio_file in audio_files]
     transcripts = await asyncio.gather(*tasks)
     # cleanup audio_chunks directory
@@ -69,22 +69,26 @@ async def generate_notes(model, note_type, transcription):
         if model == 'gpt-3.5':
             llm = ChatOpenAI(model_name='gpt-3.5-turbo-1106')
         elif model == 'gpt-4':
-            llm = ChatOpenAI(model_name='gpt-4')
+            llm = ChatOpenAI(model_name='gpt-4-1106-preview')
 
+        if note_type == "md":
+            note_type = "markdown"
+        else:
+            note_type = "plain text"
         text_prompt = """You will be provided with a transcription from a lecture/meeting/speech/video\
         Your task is to take highly detailed notes on the information present in the transcription in order for someone to study from it \
         do not loose any of the important information from the transcription. Use headings to divide up the topics if necessary. Also add some review questions on the most important pieces of content \
-        at the end. Use the ENTIRE context window of the transcription. Make sure your response is in {note_type} format. The transcription is: {text} 
+        at the end. Use the ENTIRE context window of the transcription. Make sure your response is in {note_type} format. do not include "```md or ```" The transcription is: {text} 
         """  
 
         prompt = ChatPromptTemplate.from_template(text_prompt)
         chain = prompt | llm
-        chunks = textwrap.wrap(transcription, 10000) 
+        chunks = textwrap.wrap(transcription, 6000) 
         notes = list()
         tasks = [asyncio.create_task(async_invoke(chunk, note_type, chain)) for chunk in chunks]
         notes = await asyncio.gather(*tasks)
 
-        timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         filename = f"notes_{timestamp}.{note_type}"
         with open(filename, 'w') as f:
             f.write("\n".join(notes))
@@ -123,7 +127,7 @@ async def main():
         print(f"An error occurred: {e}")
     audio_file= open(output_filename, "rb")
     output_directory = "audio_chunks"
-    chunk_length_ms = 5 * 60 * 1000  # 5 minutes in milliseconds
+    chunk_length_ms = 10 * 60 * 1000  # 10 minutes in milliseconds
     
     # create the output directory if it doesn't exist
     if not os.path.exists(output_directory):

@@ -17,7 +17,7 @@ class ScribeGUI(ctk.CTk):
         super().__init__()
         
         # window configuration
-        self.title("Scribe - AI Notetaking")
+        self.title("Scribe - AI Powered Notetaking")
         self.geometry("575x450")
         self.resizable(False, False)
 
@@ -128,7 +128,7 @@ class ScribeGUI(ctk.CTk):
     
     #upload button event
     def upload_click(self):
-        file_path = filedialog.askopenfilename(filetypes=[("WAV files", "*.wav"), ("MP3 files", "*.mp3")])
+        file_path = filedialog.askopenfilename(filetypes=[("WAV files", "*.wav"), ("MP3 files", "*.mp3"), ("M4A files", "*.m4a")])
 
         if file_path:
             # disable both buttons while processing
@@ -176,7 +176,7 @@ class ScribeGUI(ctk.CTk):
         # prepare audio for chunking before passing to whisper for transcription
         audio_file= open(self.filename, "rb")
         output_directory = "audio_chunks"
-        chunk_length_ms = 5 * 60 * 1000  # 10 minutes in milliseconds
+        chunk_length_ms = 20 * 60 * 1000  # 20 minutes in milliseconds
         
         # create the output directory if it doesn't exist
         if not os.path.exists(output_directory):
