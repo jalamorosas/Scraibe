@@ -3,6 +3,7 @@ import time
 import threading
 import shutil
 import customtkinter as ctk
+from tkinter.constants import DISABLED, NORMAL 
 from tkinter import filedialog
 import async_notes_generate
 import asyncio
@@ -31,7 +32,7 @@ class ScribeGUI:
         self.instructions_label.pack(pady=10) 
 
         # record button
-        self.button = ctk.CTkButton(self.root, text="Record", font=("Arial", 15, "bold"),
+        self.button = ctk.CTkButton(self.root, text="Record", state=NORMAL, font=("Arial", 15, "bold"),
                                 command=self.button_click)
         self.button.pack(pady=1)
 
@@ -51,7 +52,7 @@ class ScribeGUI:
         self.upload_label.pack(pady=10)
 
         # upload button
-        self.upload = ctk.CTkButton(self.root, text="Upload", font=("Arial", 15, "bold"),
+        self.upload = ctk.CTkButton(self.root, text="Upload", state=NORMAL, font=("Arial", 15, "bold"),
                                 command=self.upload_click)
         self.upload.pack(pady=10)
 
@@ -73,6 +74,8 @@ class ScribeGUI:
     # record button event
     def button_click(self):
         if self.recording:
+            # disable record button while processing
+            self.button.configure(state=DISABLED)
             self.set_status("Stopping recording, please wait...")
             self.recording = False
             self.button.configure(text="Record")
@@ -86,6 +89,8 @@ class ScribeGUI:
             threading.Thread(target=self.between_callback).start() 
 
         else:
+            # disable upload button while recording
+            self.upload.configure(state=DISABLED)
             self.set_status("Recording...")
             self.recording = True
             self.button.configure(text="Stop")
@@ -99,6 +104,9 @@ class ScribeGUI:
         file_path = filedialog.askopenfilename(filetypes=[("WAV files", "*.wav"), ("MP3 files", "*.mp3")])
 
         if file_path:
+            # disable both buttons while processing
+            self.button.configure(state=DISABLED)
+            self.upload.configure(state=DISABLED)
             self.set_status("Processing... Please wait.")
             self.filename = os.path.basename(file_path)
 
@@ -124,6 +132,9 @@ class ScribeGUI:
         asyncio.set_event_loop(loop)
 
         loop.run_until_complete(self.save_audio_and_generate_notes())
+        # enable both buttons after processing is done
+        self.button.configure(state=NORMAL)
+        self.upload.configure(state=NORMAL)
         print("Async loop completed")
         self.set_status("Processing Finished")
         loop.close()
