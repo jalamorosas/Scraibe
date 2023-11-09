@@ -4,7 +4,6 @@ from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
 import openai
 import os
-import record_audio
 from pydub import AudioSegment
 from langchain.chat_models import ChatOpenAI
 from langchain.prompts.chat import ChatPromptTemplate
@@ -72,9 +71,10 @@ async def generate_notes(model, note_type, transcription):
             llm = ChatOpenAI(model_name='gpt-4-1106-preview')
 
         if note_type == "md":
-            note_type = "markdown"
+            prompt_note_type = "markdown"
         else:
-            note_type = "plain text"
+            prompt_note_type = "plain text"
+
         text_prompt = """You will be provided with a transcription from a lecture/meeting/speech/video\
         Your task is to take highly detailed notes on the information present in the transcription in order for someone to study from it \
         do not loose any of the important information from the transcription. Use headings to divide up the topics if necessary. Also add some review questions on the most important pieces of content \
@@ -85,7 +85,7 @@ async def generate_notes(model, note_type, transcription):
         chain = prompt | llm
         chunks = textwrap.wrap(transcription, 6000) 
         notes = list()
-        tasks = [asyncio.create_task(async_invoke(chunk, note_type, chain)) for chunk in chunks]
+        tasks = [asyncio.create_task(async_invoke(chunk, prompt_note_type, chain)) for chunk in chunks]
         notes = await asyncio.gather(*tasks)
 
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -113,34 +113,36 @@ def find_microphone():
     return None
 
 async def main():
-    parser = argparse.ArgumentParser(description='A Python script that generates notes with AI')
-    parser.add_argument('--model', choices=['davinci', 'gpt-3.5', 'gpt-4'], type=str, help='choose model', default='davinci')
-    args = parser.parse_args()
-    output_filename = "speech.wav"
-    if os.path.exists(output_filename):
-        os.remove(output_filename)
+    pass
+    # DEPRECATED Main method now that GUI exists
+    # parser = argparse.ArgumentParser(description='A Python script that generates notes with AI')
+    # parser.add_argument('--model', choices=['davinci', 'gpt-3.5', 'gpt-4'], type=str, help='choose model', default='davinci')
+    # args = parser.parse_args()
+    # output_filename = "speech.wav"
+    # if os.path.exists(output_filename):
+    #     os.remove(output_filename)
 
-    device_index = find_microphone()
-    try:
-        record_audio.record_audio(filename=output_filename, device=device_index, samplerate=16000, channels=1, subtype='PCM_24')
-    except Exception as e:
-        print(f"An error occurred: {e}")
-    audio_file= open(output_filename, "rb")
-    output_directory = "audio_chunks"
-    chunk_length_ms = 10 * 60 * 1000  # 10 minutes in milliseconds
+    # device_index = find_microphone()
+    # try:
+    #     record_audio.record_audio(filename=output_filename, device=device_index, samplerate=16000, channels=1, subtype='PCM_24')
+    # except Exception as e:
+    #     print(f"An error occurred: {e}")
+    # audio_file= open(output_filename, "rb")
+    # output_directory = "audio_chunks"
+    # chunk_length_ms = 10 * 60 * 1000  # 10 minutes in milliseconds
     
-    # create the output directory if it doesn't exist
-    if not os.path.exists(output_directory):
-        os.makedirs(output_directory)
-    split_audio(audio_file, output_directory, chunk_length_ms)
+    # # create the output directory if it doesn't exist
+    # if not os.path.exists(output_directory):
+    #     os.makedirs(output_directory)
+    # split_audio(audio_file, output_directory, chunk_length_ms)
 
-    transcription = await transcribe_directory(output_directory)
-    print(transcription)
-    # delete audio file once we are done with it
-    if os.path.exists(output_filename):
-        os.remove(output_filename)
+    # transcription = await transcribe_directory(output_directory)
+    # print(transcription)
+    # # delete audio file once we are done with it
+    # if os.path.exists(output_filename):
+    #     os.remove(output_filename)
 
-    generate_notes(args.model, transcription)        
+    # generate_notes(args.model, transcription)        
 
 
 if __name__ == "__main__":
