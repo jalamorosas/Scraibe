@@ -54,7 +54,7 @@ async def generate_notes(model, transcription):
             template="Take notes on the following text {text}. \n Respond with just the notes",
         )
         chain = LLMChain(llm=llm, prompt=prompt)
-        chunks = textwrap.wrap(transcription, 2000) 
+        chunks = textwrap.wrap(transcription, 10000) 
         notes = list()
         tasks = [asyncio.create_task(async_run(chunk, chain)) for chunk in chunks]
         notes = await asyncio.gather(*tasks)
@@ -63,7 +63,7 @@ async def generate_notes(model, transcription):
         print(notes)
     else:        
         if model == 'gpt-3.5':
-            llm = ChatOpenAI(model_name='gpt-3.5-turbo')
+            llm = ChatOpenAI(model_name='gpt-3.5-turbo-1106')
         elif model == 'gpt-4':
             llm = ChatOpenAI(model_name='gpt-4')
 
@@ -75,7 +75,7 @@ async def generate_notes(model, transcription):
 
         prompt = ChatPromptTemplate.from_template(text_prompt)
         chain = prompt | llm
-        chunks = textwrap.wrap(transcription, 2000) 
+        chunks = textwrap.wrap(transcription, 10000) 
         notes = list()
         tasks = [asyncio.create_task(async_invoke(chunk, chain)) for chunk in chunks]
         notes = await asyncio.gather(*tasks)

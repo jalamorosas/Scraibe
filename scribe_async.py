@@ -1,9 +1,7 @@
 import os
-import wave
 import time
 import threading
 import customtkinter as ctk
-import pyaudio
 import async_notes_generate
 import asyncio
 import record_audio_class
@@ -18,11 +16,11 @@ class ScribeGUI:
         self.root.geometry("400x400")
         self.root.resizable(False, False)
 
-         #welcome message
+        #welcome message
         self.welcome_label = ctk.CTkLabel(self.root, text="Welcome to Scribe", font=("Arial", 24, "bold"))
         self.welcome_label.pack(pady=10)
 
-         #instructions
+        #instructions
         self.instructions_label = ctk.CTkLabel(self.root,
                                            text="Click 'Record' to start recording your lecture.\n"
                                                 "Click 'Stop' to end the recording and automatically\n"
@@ -115,8 +113,7 @@ class ScribeGUI:
         transcription = await async_notes_generate.transcribe_directory(output_directory)
         print(transcription)
 
-        #delete audio file once we are done with it
-        audio_file.close()
+        # delete audio file once we are done with it
         try:
             audio_file.close()
             # Attempt to delete the file
@@ -125,7 +122,7 @@ class ScribeGUI:
         except Exception as e:
             print(f"Error deleting the file: {e}")
 
-        notes = await async_notes_generate.generate_notes('gpt-3.5', transcription)
+        await async_notes_generate.generate_notes('gpt-3.5', transcription)
         print("save audio and notes generation completed")
         return
         
