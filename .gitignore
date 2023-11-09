@@ -1,5 +1,6 @@
 __pycache__/
-notes.txt
+notes*.txt
 venv/
 .DS_Store
 speech.wav
+UITest.py

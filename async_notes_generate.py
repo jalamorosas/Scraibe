@@ -11,6 +11,7 @@ from langchain.prompts.chat import ChatPromptTemplate
 import argparse
 import sounddevice as sd
 import asyncio
+import datetime
 
 def split_audio(input_filename, output_directory, chunk_length_ms):
     audio = AudioSegment.from_file(input_filename)
@@ -59,9 +60,12 @@ async def generate_notes(model, transcription):
         notes = list()
         tasks = [asyncio.create_task(async_run(chunk, chain)) for chunk in chunks]
         notes = await asyncio.gather(*tasks)
-        with open("notes.txt", 'a') as f:
+
+        timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+        filename = f"notes_{timestamp}.txt"
+        with open(filename, 'w') as f:
             f.write("\n".join(notes))
-        print(notes)
+        print(f"Notes saved to {filename}")
     else:        
         if model == 'gpt-3.5':
             llm = ChatOpenAI(model_name='gpt-3.5-turbo-1106')
@@ -80,9 +84,12 @@ async def generate_notes(model, transcription):
         notes = list()
         tasks = [asyncio.create_task(async_invoke(chunk, chain)) for chunk in chunks]
         notes = await asyncio.gather(*tasks)
-        with open("notes.txt", 'a') as f:
+
+        timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+        filename = f"notes_{timestamp}.txt"
+        with open(filename, 'w') as f:
             f.write("\n".join(notes))
-        print(notes)
+        print(f"Notes saved to {filename}")
     return notes
     
 def find_microphone():

@@ -15,7 +15,7 @@ class ScribeGUI:
     def __init__(self):
         self.root = ctk.CTk()
         self.root.title("Welcome to Scribe")
-        self.root.geometry("400x400")
+        self.root.geometry("500x500")
         self.root.resizable(False, False)
 
         # welcome message
@@ -38,6 +38,11 @@ class ScribeGUI:
         # timer
         self.label = ctk.CTkLabel(self.root, text="00:00:00", font=("Arial", 20))
         self.label.pack(pady=20)
+
+        # progress bar
+        self.progressbar = ctk.CTkProgressBar(self.root, orientation="horizontal")
+        self.progressbar.set(0)
+        self.progressbar.pack(pady=20)
 
         # status messages
         self.status_label = ctk.CTkLabel(self.root, text="", font=("Arial", 12))
@@ -81,6 +86,8 @@ class ScribeGUI:
             self.recording_thread.join()  # Wait for the recording thread to finish
             print("button: recording thread finished")
             self.recording_thread = None  # Clear the thread
+            self.progressbar.set(0)
+            self.progressbar.start()
             self.set_status("Processing... Please wait.")
             self.filename = 'my_recording.wav'
             threading.Thread(target=self.between_callback).start() 
@@ -125,6 +132,8 @@ class ScribeGUI:
 
         loop.run_until_complete(self.save_audio_and_generate_notes())
         print("Async loop completed")
+        self.progressbar.set(100)
+        self.progressbar.stop()
         self.set_status("Processing Finished")
         loop.close()
         return
