@@ -45,7 +45,7 @@ class ScribeGUI:
 
         # upload instructions
         self.upload_label = ctk.CTkLabel(self.root,
-                                           text="Or upload a .wav file to automatically\n"
+                                           text="Or upload a .wav or .mp3 file to automatically\n"
                                                 " download a notes file of the recording.",
                                            font=("Arial", 14), justify=ctk.LEFT)
         self.upload_label.pack(pady=10)
@@ -96,7 +96,7 @@ class ScribeGUI:
     
     #upload button event
     def upload_click(self):
-        file_path = filedialog.askopenfilename(filetypes=[("WAV files", "*.wav")])
+        file_path = filedialog.askopenfilename(filetypes=[("WAV files", "*.wav"), ("MP3 files", "*.mp3")])
 
         if file_path:
             self.set_status("Processing... Please wait.")
@@ -131,6 +131,7 @@ class ScribeGUI:
 
     # save audio and generate notes
     async def save_audio_and_generate_notes(self): 
+        # prepare audio for chunking before passing to whisper for transcription
         audio_file= open(self.filename, "rb")
         output_directory = "audio_chunks"
         chunk_length_ms = 5 * 60 * 1000  # 10 minutes in milliseconds

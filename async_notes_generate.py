@@ -19,6 +19,7 @@ def split_audio(input_filename, output_directory, chunk_length_ms):
     
     for i in range(0, total_length_ms, chunk_length_ms):
         chunk = audio[i:i + chunk_length_ms]
+        chunk = chunk.set_frame_rate(16000) # max frame rate that whisper supports
         chunk_name = f"{output_directory}/chunk{i//1000}_{(i + chunk_length_ms)//1000}.wav"
         chunk.export(chunk_name, format="wav")
         print(f"Exported {chunk_name}")
@@ -54,7 +55,7 @@ async def generate_notes(model, transcription):
             template="Take notes on the following text {text}. \n Respond with just the notes",
         )
         chain = LLMChain(llm=llm, prompt=prompt)
-        chunks = textwrap.wrap(transcription, 10000) 
+        chunks = textwrap.wrap(transcription, 2000) 
         notes = list()
         tasks = [asyncio.create_task(async_run(chunk, chain)) for chunk in chunks]
         notes = await asyncio.gather(*tasks)
@@ -68,8 +69,8 @@ async def generate_notes(model, transcription):
             llm = ChatOpenAI(model_name='gpt-4')
 
         text_prompt = """You will be provided with a transcription from a lecture/meeting/speech\
-        Your task is to take detailed and nicely formatted notes on the information present in the transcription in order for someone to study from it \
-        and not loose any of the important information from the transcription. Also add some review questions on the most important pieces of content \
+        Your task is to take highly detailed and nicely formatted notes on the information present in the transcription in order for someone to study from it \
+        do not loose any of the important information from the transcription. Also add some review questions on the most important pieces of content \
         at the end. The transcription is: {text} 
         """  
 
