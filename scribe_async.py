@@ -1,7 +1,9 @@
 import os
 import time
 import threading
+import shutil
 import customtkinter as ctk
+from tkinter import filedialog
 import async_notes_generate
 import asyncio
 import record_audio_class
@@ -16,46 +18,59 @@ class ScribeGUI:
         self.root.geometry("400x400")
         self.root.resizable(False, False)
 
-        #welcome message
-        self.welcome_label = ctk.CTkLabel(self.root, text="Welcome to Scribe", font=("Arial", 24, "bold"))
+        # welcome message
+        self.welcome_label = ctk.CTkLabel(self.root, text="Scribe", font=("Arial", 24, "bold"))
         self.welcome_label.pack(pady=10)
 
-        #instructions
+        # record instructions
         self.instructions_label = ctk.CTkLabel(self.root,
                                            text="Click 'Record' to start recording your lecture.\n"
                                                 "Click 'Stop' to end the recording and automatically\n"
                                                 "download a notes file of the recording.",
                                            font=("Arial", 14), justify=ctk.LEFT)
-        self.instructions_label.pack(pady=20) 
+        self.instructions_label.pack(pady=10) 
 
-        #record button
+        # record button
         self.button = ctk.CTkButton(self.root, text="Record", font=("Arial", 15, "bold"),
                                 command=self.button_click)
-        self.button.pack(pady=10)
+        self.button.pack(pady=1)
 
-        #timer
+        # timer
         self.label = ctk.CTkLabel(self.root, text="00:00:00", font=("Arial", 20))
-        self.label.pack(pady=10)
+        self.label.pack(pady=20)
+
+        # status messages
+        self.status_label = ctk.CTkLabel(self.root, text="", font=("Arial", 12))
+        self.status_label.pack(pady=20)
+
+        # upload instructions
+        self.upload_label = ctk.CTkLabel(self.root,
+                                           text="Or upload a .wav file to automatically\n"
+                                                " download a notes file of the recording.",
+                                           font=("Arial", 14), justify=ctk.LEFT)
+        self.upload_label.pack(pady=10)
+
+        # upload button
+        self.upload = ctk.CTkButton(self.root, text="Upload", font=("Arial", 15, "bold"),
+                                command=self.upload_click)
+        self.upload.pack(pady=10)
 
         self.recording = False
         self.filename = None
         self.processing_thread = None
-        # Add a label for status messages
-        self.status_label = ctk.CTkLabel(self.root, text="", font=("Arial", 12))
-        self.status_label.pack(pady=5)
 
-        self.filename = 'my_recording.wav'
-        self.recorder = record_audio_class.AudioRecorder(filename=self.filename, channels=1, subtype='PCM_24')
+        # set up recorder class
+        self.recorder = record_audio_class.AudioRecorder(filename='my_recording.wav', channels=1, subtype='PCM_24')
         self.recording_thread = None
 
         self.root.mainloop()
 
-
+    # update status message
     def set_status(self, message):
-        """Updates the status label with a given message."""
         self.status_label.configure(text=message)
         self.status_label.update()
 
+    # record button event
     def button_click(self):
         if self.recording:
             self.set_status("Stopping recording, please wait...")
@@ -67,6 +82,7 @@ class ScribeGUI:
             print("button: recording thread finished")
             self.recording_thread = None  # Clear the thread
             self.set_status("Processing... Please wait.")
+            self.filename = 'my_recording.wav'
             threading.Thread(target=self.between_callback).start() 
 
         else:
@@ -77,8 +93,22 @@ class ScribeGUI:
             self.recording_thread = threading.Thread(target=self.recorder.record)
             self.recording_thread.start()
             self.update_timer(self.start_time)
+    
+    #upload button event
+    def upload_click(self):
+        file_path = filedialog.askopenfilename(filetypes=[("WAV files", "*.wav")])
 
-    #update timer
+        if file_path:
+            self.set_status("Processing... Please wait.")
+            self.filename = os.path.basename(file_path)
+
+            # make a copy of the file in the current directory
+            new_file_path = os.path.join(os.getcwd(), self.filename)
+            shutil.copy(file_path, new_file_path)
+            self.filename = self.filename
+            threading.Thread(target=self.between_callback).start()
+
+    # update timer
     def update_timer(self, start_time):
         if self.recording:
             passed = time.time() - start_time
@@ -88,6 +118,7 @@ class ScribeGUI:
             self.label.configure(text=f"{int(hours):02d}:{int(mins):02d}:{int(seconds):02d}")
             self.root.after(1000, self.update_timer, start_time)
 
+    # async processing
     def between_callback(self):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
@@ -98,12 +129,13 @@ class ScribeGUI:
         loop.close()
         return
 
+    # save audio and generate notes
     async def save_audio_and_generate_notes(self): 
         audio_file= open(self.filename, "rb")
         output_directory = "audio_chunks"
         chunk_length_ms = 5 * 60 * 1000  # 10 minutes in milliseconds
         
-        # Create the output directory if it doesn't exist
+        # create the output directory if it doesn't exist
         if not os.path.exists(output_directory):
             os.makedirs(output_directory)
 
@@ -116,7 +148,7 @@ class ScribeGUI:
         # delete audio file once we are done with it
         try:
             audio_file.close()
-            # Attempt to delete the file
+            # attempt to delete the file
             if os.path.exists(self.filename):
                 os.remove(self.filename)
         except Exception as e:
