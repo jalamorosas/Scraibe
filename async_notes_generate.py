@@ -42,13 +42,13 @@ async def transcribe_directory(directory_path):
 
 async def async_run(chunk, chain):
     resp = await chain.arun(text=chunk)
+    return resp
+
+async def async_invoke(chunk, note_type, chain):
+    resp = await chain.ainvoke({"text": chunk, "note_type": note_type})
     return resp.content
 
-async def async_invoke(chunk, chain):
-    resp = await chain.ainvoke({"text": chunk})
-    return resp.content
-
-async def generate_notes(model, transcription):
+async def generate_notes(model, note_type, transcription):
     if model == 'davinci':
         llm = OpenAI(model_name="text-davinci-003")
         prompt = PromptTemplate(
@@ -72,21 +72,21 @@ async def generate_notes(model, transcription):
         elif model == 'gpt-4':
             llm = ChatOpenAI(model_name='gpt-4')
 
-        text_prompt = """You will be provided with a transcription from a lecture/meeting/speech\
-        Your task is to take highly detailed and nicely formatted notes on the information present in the transcription in order for someone to study from it \
-        do not loose any of the important information from the transcription. Also add some review questions on the most important pieces of content \
-        at the end. The transcription is: {text} 
+        text_prompt = """You will be provided with a transcription from a lecture/meeting/speech/video\
+        Your task is to take highly detailed notes on the information present in the transcription in order for someone to study from it \
+        do not loose any of the important information from the transcription. Use headings to divide up the topics if necessary. Also add some review questions on the most important pieces of content \
+        at the end. Use the ENTIRE context window of the transcription. Make sure your response is in {note_type} format. The transcription is: {text} 
         """  
 
         prompt = ChatPromptTemplate.from_template(text_prompt)
         chain = prompt | llm
         chunks = textwrap.wrap(transcription, 10000) 
         notes = list()
-        tasks = [asyncio.create_task(async_invoke(chunk, chain)) for chunk in chunks]
+        tasks = [asyncio.create_task(async_invoke(chunk, note_type, chain)) for chunk in chunks]
         notes = await asyncio.gather(*tasks)
 
         timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-        filename = f"notes_{timestamp}.txt"
+        filename = f"notes_{timestamp}.{note_type}"
         with open(filename, 'w') as f:
             f.write("\n".join(notes))
         print(f"Notes saved to {filename}")
