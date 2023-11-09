@@ -23,7 +23,6 @@ def split_audio(input_filename, output_directory, chunk_length_ms):
         chunk = chunk.set_frame_rate(16000) # max frame rate that whisper supports
         chunk_name = f"{output_directory}/chunk{i//1000}_{(i + chunk_length_ms)//1000}.wav"
         chunk.export(chunk_name, format="wav")
-        print(f"Exported {chunk_name}")
 
 async def transcribe_audio(file_path):
     loop = asyncio.get_event_loop()
