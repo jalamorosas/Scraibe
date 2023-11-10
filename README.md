@@ -1,5 +1,14 @@
 # Scribe
 ## An AI note taking tool
+Students struggle to absorb information during lectures due to the demands of multitasking — taking notes distracts from active listening. With professors often speaking rapidly, key details are missed, leaving students wishing for a way to fully engage with the material without the split focus.
+"The more we multitask, the less we actually accomplish, because we slowly lose our ability to focus." — Cleveland Clinic
+
+- Record or Upload Audio: Capture every word from your lectures with ease.
+- Intelligent Transcription: Converts spoken language into organized, written notes.
+- Powered by AI: Our Large Language Model (LLM) not only transcribes but also synthesizes the content.
+- Study-Ready Notes: Get concise, well-structured notes ready for review.
+- Active-Recall Enhancement: Scribe prompts the LLM to formulate active-recall questions, enhancing retention and understanding.
+- Study Smarter, Not Harder: Engage fully in lectures now and study efficiently later with Scribe.
 
 ## Installation
 - Clone this github repository to your device
