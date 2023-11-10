@@ -5,7 +5,7 @@ Students struggle to absorb information during lectures due to the demands of mu
 
 - Record or Upload Audio: Capture every word from your lectures with ease.
 - Intelligent Transcription: Converts spoken language into organized, written notes.
-- Powered by AI: Our Large Language Model (LLM) not only transcribes but also synthesizes the content.
+- Powered by AI: Large Language Model (LLM) not only transcribes but also synthesizes the content.
 - Study-Ready Notes: Get concise, well-structured notes ready for review.
 - Active-Recall Enhancement: Scribe prompts the LLM to formulate active-recall questions, enhancing retention and understanding.
 - Study Smarter, Not Harder: Engage fully in lectures now and study efficiently later with Scribe.
